@@ -1,0 +1,693 @@
+---
+title: "**Global Country Cross-Analysis**"
+subtitle : "*Visulization Project*"
+author: "**Siddhesh Maheshwari**"
+subauthor : "**MDS202347**"
+date: "`r Sys.Date()`"
+header-includes:
+  \usepackage{fvextra}
+  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=F,message=F,comment=NA,echo = FALSE)
+```
+
+\renewcommand{\contentsname}{Table of Contents}
+
+```{=tex}
+\renewcommand{\baselinestretch}{2.0}\normalsize
+\tableofcontents
+\renewcommand{\baselinestretch}{1.0}\normalsize
+```
+\newpage
+
+## \underline{Abstract :}
+
+This report offers an extensive analysis of global country data,The main goal of this study is to find important patterns and connections between different countries, so we can compare them and understand what's happening on a global scale. It may serves as a valuable tool for researchers and analysts seeking deeper insights into global trends and international dynamics.\
+
+## \underline{1 Introduction:}
+
+###### We have a comprehensive dataset provides a wealth of information about all countries worldwide. It can facilitate in-depth analysis and foster cross-country comparisons. The process involves a comprehensive examination of known global characteristics while simultaneously exploring new data insights to better understand the interplay of factors contributing to a country's economic growth. The primary objective of this study is to glean profound insights into worldwide trends and the dynamics that underlie international affairs, facilitating cross-country juxtapositions and comprehensive investigations.
+
+## \underline{2 Data Description:}
+
+This extensive dataset offers an abundance of data on countries across the globe. It encompasses demographic statistics, economic metrics, environmental factors, healthcare indicators, educational statistics, and a host of other information. With representation from every country, this dataset provides a comprehensive global view of various facets of nations, facilitating in-depth examinations and cross-national assessments. From the Global Country Information Dataset 2023, we'll focus on the most valuable data for our research needs,even though it offers a wide range of information.
+
+While our dataset encompasses 35 different features, our primary attention will be directed towards specific key indicators. But we will try to study about GDP, Birth Rate, Agricultural Land (%), CO2 Emissions, CPI (Consumer Price Index), Life Expectancy, Unemployment Rate, Population, Tax Revenue, and more.
+
+```{r IMPORTING Data and lib,echo=TRUE}
+data=read.csv("/home/sidd/sidd/Visualization_/db/World-data-2023.csv")
+library(ggplot2)
+```
+
+```{r Column name}
+library(knitr)
+library(tidyr)
+colnames(data) <- gsub("\\.", "_", colnames(data))
+colnames(data) <- gsub("__", "_", colnames(data))
+colnames(data) <- gsub("__", "_", colnames(data))
+col_names<- colnames(data)
+col_names <- col_names[3:36] 
+reshaped_data <- matrix(data = unlist(col_names), ncol = 2, byrow = TRUE)
+# print(reshaped_data)
+# reshaped_data <- gsub("."," ",reshaped_data)
+knitr::kable(reshaped_data,format = "markdown",caption = "Name of Features of Data Set",)
+```
+
+\textbf{Some Important Terms :-}\
+\textbf{GDP:} Gross Domestic Product, the total value of goods and services produced in the country. \newline \textbf{CPI:} Consumer Price Index, a measure of inflation and purchasing power and changes in the cost of living.\
+\textbf{Infant Mortality:} Number of deaths per 1,000 live births before reaching one year of age.\
+\textbf{Tax Revenue (\%):} Tax revenue as a percentage of GDP measures the amount of government revenue collected from taxes relative to the size of the economy (GDP).\
+\textbf{Unemployment Rate:} Percentage of the labor force that is unemployed.\
+\textbf{CO2 Emissions:} Carbon dioxide (CO2) emissions refer to the release of carbon dioxide gas into the atmospher,.\
+\textbf{Fertility Rate:} The fertility rate represents the average number of children born to a woman over her lifetime.\
+\textbf{Life Expectancy :} It refers to the average number of years a person can expect to live, based on current mortality rates and other demographic factors.
+
+```{r world map, fig.height=3.6}
+library(maps)
+world_map <- map_data("world")
+ggplot() +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "lightyellow", color ="black",size=.32) +
+  geom_point(data = data, aes(x = data$Longitude, y = data$Latitude), col = "red", size = .00000001,pch=20)+  geom_text()+
+  labs(title = "Countries for which we have data") +
+  theme_void()
+```
+
+```{r Data Preprosessing}
+
+data$GDP = sub("\\$", "", data$GDP)
+data$GDP = trimws(data$GDP)
+data$GDP = gsub(",", "", data$GDP)
+data$GDP = as.numeric(data$GDP)
+gdp_sum = sum(data$GDP)
+data$Population = trimws(data$Population)
+data$Population = gsub(",", "", data$Population)
+data$Population = as.numeric(data$Population)
+data[77,"Population"] = as.numeric(1417173173)
+data[77,"GDP"] = 3736.9*1000000000
+
+data["GDP_per_capita"] = round(data$GDP/data$Population,digits = 2)
+data$GDP = data$GDP/1000000000
+data$GDP = round(data$GDP,digits = 1)
+data$Urban_population <- trimws(data$Urban_population)
+data$Urban_population <-  gsub(",","",data$Urban_population)
+data$Urban_population <- as.numeric(data$Urban_population)
+data_urban <- data[complete.cases(data$Urban_population), ]
+# View(data)
+
+# 
+# data$CPI.Change.... <- gsub("%","",data$CPI.Change....)
+# data$CPI.Change.... <- as.numeric(data$CPI.Change....)
+
+
+data_sorted <- data[order(-data$GDP), ]
+
+data_sorted$Population = trimws(data_sorted$Population)
+data_sorted$Population = gsub(",", "", data_sorted$Population)
+data_sorted$Population = as.numeric(data_sorted$Population)
+data_1 <- data_sorted[1:50,]
+removed_gdp_outlier <-data_sorted[20 : 192 ,]
+removed_gdp_outlier$Population = as.numeric(removed_gdp_outlier$Population)
+removed_gdp_outlier <- removed_gdp_outlier[order(-removed_gdp_outlier$Population),]
+removed_gdp_population_outlier<-removed_gdp_outlier[10:173,]
+
+
+
+```
+
+## \underline{3 Exploratory Data Aalysis:}
+
+### \underline{GDP (Gross domestic product):}
+
+```{r GDP top20,fig.height=4}
+
+top_20 <- head(data_sorted, 20)
+ggplot(top_20, aes(x = reorder(Country, -GDP), y = GDP/100)) +
+  geom_bar(stat = "identity", fill = "#1f77b4") +
+  geom_text(aes(label = round(GDP/1000,digits = 2)),angle=90, size = 3) +
+  labs(
+    title = "Top 20 Countries by GDP",
+    x = NULL,
+    y = "GDP in Trillion $",
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = -45, hjust = 0))
+
+```
+
+It's evident that the \textbf{United States and China} make substantial contributions to the global GDP, while \textbf{INDIA} holds the fifth position.
+
+```{r GDP BOX PLOTS,fig.keep='first',fig.height=3.4}
+
+ggplot(data_sorted, aes(y = GDP/1000)) +
+  geom_boxplot(fill = "#7f7f7f",outlier.colour = "#2ca02c", color = "red") +
+  labs(
+    title = "Box Plot of GDP",
+    y = "GDP in Trillion $"
+  ) +
+  theme_minimal() +
+  coord_flip()
+
+withouttop50 <- data_sorted[50:190,]
+ plot50 <- ggplot(withouttop50, aes(y = GDP/1000)) +
+  geom_boxplot(outlier.colour = "#2ca02c",fill = "#b3bfd1", color = "red") +
+  labs(
+    title = "Box Plot of GDP after Top 50",
+    y = "GDP in Trillion $"
+  ) +
+  theme_minimal() +
+  coord_flip()
+ 
+withouttop100 <- data_sorted[100:190,]
+ plot100 <- ggplot(withouttop100, aes(y = GDP/1000)) +
+  geom_boxplot(fill = "#b3bfd1", color = "red") +
+  labs(
+    title = "Box Plot of GDP after Top 100",
+    y = "GDP in Trillion $"
+  ) +
+  theme_minimal() +
+  coord_flip() 
+```
+
+Here We can Clearly See that GDP is highly affected from outliers like United States and China. If we remove some data then make a plot lets see what happens.
+
+```{r plot1, fig.show='asis', out.width='50%'}
+plot50
+plot100
+```
+
+Now clearly we can see that If we remove Chine and US then our data is not abnormal.
+
+### \underline{Population and BirthRate :}
+
+BirthRate : is a demographic measure that quantifies the number of live births in a given population during a specific period (typically per 1,000 people) within that population.
+
+```{r Theory}
+total_popu <- sum(data$Population)
+print(paste("Total Population : ",total_popu," # May be some missing Countries"))
+data_birth <- subset(data_sorted,!is.na(Birth_Rate))
+avg_birthrate <- mean(data_birth$Birth_Rate)
+print(paste("Avarage Birth Rate is : ",avg_birthrate))
+
+print(paste("So we can predict That on the given population ",round(avg_birthrate*total_popu/1000,digits = 0)," will increase in a year "))
+print(paste("It will be increased more that 0.15 biilon next year!"))
+```
+
+```{r Population,fig.height=4,,out.width="100%"}
+data$Population <- round(data$Population/10000000,digits = 1) 
+data_population <- data[order(-data$Population),]
+top_20_population  <- head(data_population,21)
+top_20_population <- top_20_population[-16,]
+ggplot(top_20_population, aes(x = reorder(Country, -Population), y = Population),) +
+  geom_bar(stat = "identity", fill = "#ff7f0e") +
+  geom_text(aes(label = Population),angle=90, size = 3) +
+  labs(
+    title = "Top 20 Countries by Population",
+    x = NULL,
+    y = "Population in Crore (Cr)",
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = -45, hjust = 0))
+```
+
+```{r pie ,fig.align='center'}
+library(dplyr)
+top_countries = data_population[1:2,]
+top_countries <- select (top_countries,Country,Population)
+other_population <- sum(data_population$Population[ 3 :length(data_population$Population)])
+other_df <- data.frame(Country = "Others", Population = other_population)
+
+# Concatenate the two data frames
+new_df <- rbind(top_countries, other_df)
+new_df$Percentage <- (new_df$Population / sum(new_df$Population)) * 100
+ggplot(new_df, aes(x = "", y = Percentage, fill = Country)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  labs(x = NULL, y = NULL, fill = "Country") +
+  scale_fill_manual(values = c("India" = "red", "China" = "green", "Others" = "blue")) +
+  geom_text(aes(label = sprintf("%.1f%%", Percentage)), position = position_stack(vjust = 0.5)) +
+  theme_void() +
+  theme(legend.position = "right") +
+  ggtitle("Population Distribution as Percentage")
+
+```
+
+Upon analyzing the plot, it becomes apparent that India faces a challenge in achieving a harmonious equilibrium between GDP and its large population, whereas the United States seems to have effectively managed this balance.
+
+India's population can be a valuable asset, but it also requires careful management and planning to ensure a high quality of life for its citizens and sustainable development for the country as a whole.
+
+### \underline{GDP Per Capita:}
+
+\textbf{GDP per capita:} Gross Domestic Product (GDP) per person, a measure of the average income or economic output per individual in a population.
+
+```{r GDP Per Capita,out.width="50%"}
+data$GDPPERCENT  <- data$GDP*(1000/gdp_sum)  
+data$GDPPERCENT =  round(data$GDPPERCENT,digits = 2)
+top_gdp_per <-  data[order(-data$GDP_per_capita),]
+ggplot(top_gdp_per,aes(y=GDP_per_capita))+
+  geom_boxplot(fill="#b3bfd1",colour ="red")+
+  coord_flip()+
+  theme_classic()
+
+ggplot(top_gdp_per[50:192,],aes(y=GDP_per_capita))+
+  geom_boxplot(fill="#b3bfd1",colour ="red")+
+  coord_flip()+
+  labs(
+    title = "GDP Per Capita After Top 50"
+  )+
+  theme_classic()
+```
+
+```{r gdp per capita bar}
+ggplot(top_gdp_per[0:20,],aes(x=reorder(Country,-GDP_per_capita),y = GDP_per_capita))+
+   geom_bar(stat = "identity", fill = "#de25da",color="red")+
+   labs(
+     title = "TOP GDP Per Capita"
+     ,x=NULL
+     ,y="GDP Per Capita ($)"
+   )+
+  theme_minimal()+
+   theme(axis.text.x = element_text(angle = -45,hjust=0))
+```
+
+It appears that the GDP per capita is influenced by outliers, but beyond a certain point (among the top countries), there is a more even distribution.
+
+### \underline{Some other Features distributions : }
+
+```{r other plot,out.width="50%"}
+grouped_data <- table(data$Official_language)  
+grouped_data <- as.data.frame(grouped_data)
+sorted_group <-  grouped_data[order(-grouped_data$Freq),]
+top_5_lan <- sorted_group[1:5,]
+colnames(top_5_lan)[colnames(top_5_lan)=="Var1"] <- "Language"
+ggplot(top_5_lan, aes(x = "", y = Freq, fill = Language)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Freq), position = position_stack(vjust = 0.5), color = "white", size = 4,) +  
+  labs(
+    title = "Top Language Distribution"
+  ) +
+  coord_polar(theta = "y") +
+  theme_void()+
+   theme(legend.title = NULL ,legend.key = element_rect(fill = "white", color = "black"),
+        legend.key.size = unit(1, "cm"),  # Adjust the legend key size
+        legend.box = "circle")  
+
+data_birth <- data[complete.cases(data$Birth_Rate), ]
+data_birth$Birth_Rate <- as.numeric(data_birth$Birth_Rate)
+
+ggplot(data = data_birth, aes(x = Birth_Rate)) +
+  geom_histogram(aes(y = ..density..), fill = "blue", color = "black", bins = 30) +
+  geom_density(color = "brown") +
+  labs(x = "Birth Rate(Per 1000)", y = "Density",title = "Birth Rate Distribution") +
+  theme_classic()
+
+```
+
+\text{}
+
+\
+
+The pie chart strongly indicates that English and French are prevalent languages on a global scale.\
+
+The histogram illustrates that the average birth rate falls within the range of 10 to 20 persons per 1000.\
+\vspace{2cm}
+
+```{r other graph,out.width="50%"}
+data_mortility <- data[complete.cases(data$Infant_mortality), ]
+
+data_birth$Infant_mortality <- as.numeric(data_birth$Infant_mortality)
+  ggplot(data = data_mortility, aes(x = Infant_mortality)) +
+  geom_histogram(aes(y = ..density..), fill = "#17becf", color = "black", bins = 20) +
+    geom_density(aes(y=..density..),col = "#8c564b")+
+  labs(x = "Infant Mortalit (Per 1000)", y = "Percentage (%)",title = "  Infant Mortality Distribution  ") +
+  theme_classic()
+  
+data_Unemploy <- data[complete.cases(data$Unemployment_rate), ]
+data_Unemploy$Unemployment_rate <- sub("%","",data_Unemploy$Unemployment_rate)
+# typeof(data_Unemploy$Unemployment.rate)
+data_Unemploy$Unemployment_rate <- as.numeric(data_Unemploy$Unemployment_rate)
+data_Unemploy <- data_Unemploy[complete.cases(data_Unemploy$Unemployment_rate), ]
+
+mean_unemployment_rate<- mean(data_Unemploy$Unemployment_rate*(data$Population))
+#mean_unemployment_rate
+ggplot(data = data_Unemploy, aes(x = Unemployment_rate)) +
+  geom_histogram(aes(y = ..density..), fill = "#9467bd", color = "black") + 
+  labs(x = "Unemployment Rate(%)", y = "Percent (%)",title = "Unemployment Rate Distribution") +
+  geom_density(aes(y=..density..),col = "#8c564b")+
+  theme_classic()  
+
+
+
+```
+
+```{r}
+
+#print(paste("jhhu",mean_unemployment_rate,"fdd"))
+
+```
+
+\text{}  \~The plot suggests that, on average, there are approximately 10 infant deaths per 1000 births.\
+\~By calculation the mean of the unemployment rate and multiply it by the population data, it appears that approximately 24% of the population is unemployed.
+
+\vspace{3cm}
+
+### \underline{\text{Correlation Among Key Features of the Top 50 Countries:}}
+
+```{r Comparision,out.width="50%",out.height="40%"}
+###### \underline{\text{Corrlation Matrix} } 
+
+# data_urban$Urban_population <- round(data_urban$Urban_population/10000000, digits = 2)
+#  
+#  ggplot(data = data_urban, aes(x = GDP_per_capita, y = Urban_population)) +
+#    geom_point(col="#8c564b") + 
+#    labs(x = "GDP Per Capita", y = "Urban Population(Cr)") +  
+#    theme_minimal() 
+# # 
+#  ggplot(data = data, aes(x = GDP_per_capita, y = Population)) +
+#    geom_point(col="#8c564b") +  
+#    labs(x = "GDP Per Capita", y = "Total Population(Cr)") +  
+#    theme_minimal()
+# 
+#removed_gdp_population_outlier <- round(removed_gdp_population_outlier$Urban_population/10000000, digits = 2)
+# removed_gdp_population_outlier <- round(removed_gdp_population_outlier$Population/10000000, digits = 2)
+# ggplot(data = removed_gdp_population_outlier, aes(x = GDP, y = Urban_population)) +
+#   geom_point(col="#8c564b") +  
+#   labs(x = "GDP Per Capita", y = "Urban Population(Cr)") +  
+#   theme_minimal() 
+# ggplot(data = removed_gdp_population_outlier, aes(x = GDP, y = Population)) +
+#   geom_point(col="#8c564b") +  
+#   labs(x = "GDP Per Capita", y = "Total Population(Cr)") +  
+#   theme_minimal()
+
+# 
+# library(webshot)
+# plot_ly(data, x='GDP_per_capita', y='Population')
+# 
+# # Customize axis labels
+# fig.update_xaxes(title_text="GDP Per Capita")
+# fig.update_yaxes(title_text="Total Population (Cr)")
+# 
+# # Set the plot theme to minimal
+# fig.update_layout(template='plotly_minimal')
+# 
+# # Show the plot
+#fig
+```
+
+```{r correalation,fig.align='center',out.height="100%",out.width="100%" ,fig.height=5.7}
+library(dplyr)
+# data_1 %>%
+#   summarise_all(~sum(is.na(.))
+data_1$Co2_Emissions <- gsub(",","",data_1$Co2_Emissions)
+data_1$Co2_Emissions <- as.numeric(data_1$Co2_Emissions)
+# data_1$CPI
+data_1$CPI <- as.numeric(data_1$CPI)
+data_1$Unemployment_rate <- gsub("%","",data_1$Unemployment_rate)
+data_1$Unemployment_rate <-  as.numeric(data_1$Unemployment_rate)
+data_1$Tax_revenue_ <- gsub("%","",data_1$Tax_revenue_)
+data_1$Tax_revenue_ <-  as.numeric(data_1$Tax_revenue_)
+sel <- select(data_1,Population,GDP,Unemployment_rate,Birth_Rate,Co2_Emissions,Fertility_Rate,Life_expectancy,Infant_mortality)
+correlation_matrix <- cor(sel,use="everything", method= c("pearson"))
+
+# data_1$Population
+# data_1$Birth_Rate
+# typeof(data_1)
+# correlation_matrix
+# data_1
+library(reshape2)
+melted_correlation <- melt(correlation_matrix)
+# ggplot(melted_correlation, aes(Var1, Var2, fill = value)) +
+#   geom_tile() +
+#   scale_fill_gradient2(low = "pink", high = "blue", mid = "white", 
+#    midpoint = 0, limit = c(-1,1), space = "Lab")+
+#   labs(title = "Correlation Heatmap", x = "Variables", y = "Variables") +
+#   theme_minimal()+  # You can customize the theme as needed
+#   theme(axis.text.x = element_text(angle = -90, hjust = 0))
+# correlation_matrix <- round(correlation_matrix, 2)
+# correlation_matrix
+correlation_matrix<-round(correlation_matrix,digits = 2)
+knitr::kable(correlation_matrix,format = "markdown",caption = "Correlation Matrix",col.names = c("Po.","GDP","Un_Rt","Bir_Rt","Co2_Emi","Fer_Rt","Life_Ex","Infnt_Mor"))
+# 
+# data_2 = data_sorted[1:100,]
+# sel_1 <- select(data_2,Population,Birth_Rate,GDP,Fertility_Rate,Life_expectancy)
+# correlation_matrix_2 <- cor(sel_1,use="everything", method= c("pearson"))
+# correlation_matrix
+
+ library(corrplot)
+ library(RColorBrewer)
+corrplot(
+   correlation_matrix,
+   type = "upper",
+   order = "AOE",
+   number.cex = 6,
+   tl.cex = 0.5,
+   col = brewer.pal(n = 100, name = "RdBu"),
+   bg = "lightyellow",
+   title = "Correlation Heat Map",  # Specify the title
+   title.col = "black",  # Color of the title text
+   mar = c(1, 1, 2, 1)  # Adjust the bottom margin
+ )
+
+
+
+```
+
+#### \underline{Observations : }
+
+\vspace{3cm}\
+• Based on the heat map and our observations, it appears that GDP is positively linked to both population size and is notably associated with CO2 emissions .\
+• Life expectancy is significantly linked to birth rate, fertility rate, and infant mortality rate, showing a strong positive correlation with these demographic indicators.\
+• The increase in population is a major factor contributing to higher CO2 emissions. More people mean more carbon dioxide being released into the atmosphere.\
+• Unemployment rates does not exhibit a strong correlation with any specific element or factor.\
+• The unemployment rate is not directly tied to the size of the population.\
+• Life expectancy is a key factor that demonstrates a strong correlation with various other features or indicators.
+
+### \underline{Trends Analysis : }
+
+#### \underline{The Relationships between various features and GDP}
+
+```         
+```
+
+```{r sctter gdp , out.width="50%",out.height="35%"}
+
+ggplot(data = data_1, aes(x = GDP_per_capita, y = Urban_population)) +
+  geom_point(col = "#8c564b") + 
+  geom_smooth(method = "lm", se = TRUE, col = "blue") + # Add the fitted line and confidence interval
+  labs(x = "GDP Per Capita", y = "Urban Population (Cr)") +  
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(size = 12, hjust = 0.5),
+    plot.caption = element_text(size = 10, hjust = 0.5),
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 12, face = "bold"),
+    legend.position = "none"
+  )
+ 
+ 
+ ggplot(data = data_1, aes(x = GDP_per_capita, y = Population)) +
+ geom_smooth(method = "lm", se = TRUE, col = "blue") +
+   geom_point(col="#8c564b") +  
+   labs(x = "GDP Per Capita", y = "Total Population(Cr)") +  
+   theme_minimal()+
+   geom_smooth(method = "lm", se = TRUE, col = "blue") +
+   theme(
+     plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+     plot.subtitle = element_text(size = 12, hjust = 0.5),
+     plot.caption = element_text(size = 10, hjust = 0.5),
+     axis.text = element_text(size = 10),
+     axis.title = element_text(size = 12, face = "bold"),
+     legend.position = "none"
+   )
+ ggplot(data = data_1, aes(x = GDP_per_capita, y = CPI)) +
+   geom_point(col="#8c564b") +  
+   geom_smooth(method = "gam", se = TRUE, col = "blue") +
+   labs(x = "GDP Per Capita", y = "CPI") +  
+   theme_minimal()+
+   theme(
+     plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+     plot.subtitle = element_text(size = 12, hjust = 0.5),
+     plot.caption = element_text(size = 10, hjust = 0.5),
+     axis.text = element_text(size = 10),
+     axis.title = element_text(size = 12, face = "bold"),
+     legend.position = "none"
+   )
+ggplot(data = data_1, aes(x = GDP_per_capita, y = Birth_Rate)) +
+   geom_point(col="#8c564b") +  
+   geom_smooth(method = "lm", se = TRUE, col = "blue") +
+   labs(x = "GDP Per Capita", y = "Birth_Rate") +  
+   theme_minimal()+
+   theme(
+     plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+     plot.subtitle = element_text(size = 12, hjust = 0.5),
+     plot.caption = element_text(size = 10, hjust = 0.5),
+     axis.text = element_text(size = 10),
+     axis.title = element_text(size = 12, face = "bold"),
+     legend.position = "none"
+   )
+ggplot(data = data_1, aes(x = GDP_per_capita, y = Tax_revenue_)) +
+   geom_point(color = "#8c564b", size = 1, alpha = 0.7)+
+   labs(x = "GDP Per Capita", y = "Tax_revenue_") +  
+   theme_minimal()+
+   theme(
+     plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+     plot.subtitle = element_text(size = 12, hjust = 0.5),
+     plot.caption = element_text(size = 10, hjust = 0.5),
+     axis.text = element_text(size = 10),
+     axis.title = element_text(size = 12, face = "bold"),
+     legend.position = "none"
+   )
+
+ggplot(data = data_1, aes(x = GDP_per_capita , y = Co2_Emissions)) +
+   geom_point(col="#8c564b") +  
+   geom_smooth(method = "lm", se = TRUE, col = "blue") +
+   labs(x = "GDP Per Capita", y = "Co2_Emissions") +  
+   theme_minimal()+
+   theme(
+     plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+     plot.subtitle = element_text(size = 12, hjust = 0.5),
+     plot.caption = element_text(size = 10, hjust = 0.5),
+     axis.text = element_text(size = 10),
+     axis.title = element_text(size = 12, face = "bold"),
+     legend.position = "none"
+   )
+  
+
+```
+
+```         
+```
+
+• GDP per capita is positively associated with CO2 emissions, indicating that wealthier countries tend to have higher carbon emissions due to increased industrialization and energy consumption.\
+• GDP per capita does not consistently correlate with tax revenue.\
+\text{}   \
+\newpage \underline{Highly Correlated Features :}
+
+```         
+```
+
+```{r scatter fer,out.width="50%",out.height="35%"}
+ ggplot(data = data_1, aes(x = Fertility_Rate , y = Birth_Rate)) +
+   geom_point(col="#8c564b") + 
+   geom_smooth(method = "lm", se = TRUE, col = "blue")+
+   labs(x = "Fertility_Rate", y = "Birth_Rate") +  
+   theme_minimal()+
+   theme(
+     plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+     plot.subtitle = element_text(size = 12, hjust = 0.5),
+     plot.caption = element_text(size = 10, hjust = 0.5),
+     axis.text = element_text(size = 10),
+     axis.title = element_text(size = 12, face = "bold"),
+     legend.position = "none"
+   )
+
+
+ ggplot(data = data_1, aes(x = Fertility_Rate, y = Infant_mortality)) +
+   geom_point(col = "#8c564b") +
+  geom_smooth(method = "gam", se = TRUE, col = "blue") +
+   labs(x = "Fertility_Rate", y = "Infant_Mortality") +
+   theme_minimal()
+
+ 
+ ggplot(data = data_1, aes(x = Fertility_Rate , y = Life_expectancy)) +
+   geom_point(col="#8c564b") +  
+   geom_smooth(method = "lm", se = TRUE, col = "blue")+
+   labs(x = "Fertility_Rate", y = "Life_expectancy") +  
+   theme_minimal()+
+   theme(
+     plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+     plot.subtitle = element_text(size = 12, hjust = 0.5),
+     plot.caption = element_text(size = 10, hjust = 0.5),
+     axis.text = element_text(size = 10),
+     axis.title = element_text(size = 12, face = "bold"),
+     legend.position = "none"
+   )
+ 
+  ggplot(data = data_1, aes(x = Birth_Rate , y = Infant_mortality)) +
+   geom_point(col="#8c564b") +  
+   geom_smooth(method = "lm", se = TRUE, col = "blue")+
+   labs(x = "Birth_Rate", y = "Infant_Mortality") +  
+   theme_minimal()+
+   theme(
+     plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+     plot.subtitle = element_text(size = 12, hjust = 0.5),
+     plot.caption = element_text(size = 10, hjust = 0.5),
+     axis.text = element_text(size = 10),
+     axis.title = element_text(size = 12, face = "bold"),
+     legend.position = "none"
+   )
+  
+ggplot(data = data_1, aes(x = Birth_Rate , y = Life_expectancy),) +
+  geom_point(col="#8c564b") +  
+  geom_smooth(method = "lm", se = TRUE, col = "blue")+
+  # geom_smooth(method = "lm", se = FALSE, col = "blue") + # Add linear regression line
+  labs(x = "Birth_Rate", y = "Life_expectancy") +  
+  theme_minimal()+
+   theme(
+     plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+     plot.subtitle = element_text(size = 12, hjust = 0.5),
+     plot.caption = element_text(size = 10, hjust = 0.5),
+     axis.text = element_text(size = 10),
+     axis.title = element_text(size = 12, face = "bold"),
+     legend.position = "none"
+   )
+  
+   ggplot(data = data_1, aes(x = Infant_mortality , y = Life_expectancy)) +
+   geom_point(col="#8c564b") +  
+   geom_smooth(method = "lm", se = TRUE, col = "blue")+
+   labs(x = "Infant_Mortality", y = "Life_expectancy") +  
+   theme_minimal()+
+   theme(
+     plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
+     plot.subtitle = element_text(size = 12, hjust = 0.5),
+     plot.caption = element_text(size = 10, hjust = 0.5),
+     axis.text = element_text(size = 10),
+     axis.title = element_text(size = 12, face = "bold"),
+     legend.position = "none"
+   )
+
+ 
+```
+
+•The scatter plots with linear fitting clearly demonstrate a positive correlation between Fertility Rate, Infant Mortality, and Birth Rate. This means that as one of these variables increases, the others also tend to increase, indicating a strong association among these key demographic factors\
+•Whereas Life expectancy is inversely proportional to Fertility Rate, Infant Mortality, and Birth Rate, meaning that as any of these factors increase, life expectancy tends to decreas.\
+
+```{r}
+# data %>%
+#   summarise_all(~sum(is.na(.)))
+data_withoutna <- subset(data,select = -Physicians_per_thousand)
+data_withoutna <- na.omit(data_withoutna)
+
+```
+
+\newpage
+
+## \underline{4 Conclusions :}
+
+\section{}
+
+Based on the analysis and findings presented in the report, several conclusions can be drawn regarding the key features and trends in global country statistics:
+
+```{=tex}
+\begin{enumerate}
+    \item \textbf{GDP Significance}: The global economic landscape is heavily influenced by a handful of countries, with the United States and China standing out as major contributors to the world's Gross Domestic Product (GDP). This concentration of economic power among a few nations has a substantial impact on the global economy.
+    
+    \item \textbf{Population Challenges}: India's large population presents a unique challenge in balancing economic growth (GDP) with the need for effective population management. The significant increase in the average birth rate underscores the importance of policies aimed at addressing population growth
+    
+    \item \textbf{Language and Birth Rates}: English and French emerge as prominent languages globally. Birth rate distribution reveals that many countries fall within a range of 10 to 20 births per 1,000 people, indicating a commonality in demographic trends.
+    
+    \item \textbf{Unemployment and Infant Mortality}:The relatively high unemployment rate, at approximately 24\%, underscores the global challenge of providing employment opportunities for populations. The unemployment rate is not necessarily influenced by the overall population size.Infant mortality rates, with an average of around 10 deaths per 1,000 births, reflect varying healthcare qualities across countries. 
+    
+    \item \textbf{Correlation Insights}: The correlation matrix analysis reveals several important relationships among key features. Notably, GDP is positively correlated with population size and CO2 emissions, suggesting that larger economies tend to produce more emissions. Life expectancy is strongly linked to birth rate, fertility rate, and infant mortality, highlighting the importance of healthcare and family planning in improving life expectancy.
+    
+    \item \textbf{Highly Correlated Features}: Relationships between highly correlated features, such as fertility rate and birth rate, emphasize the importance of family planning and healthcare in managing population growth and reducing infant mortality.
+\end{enumerate}
+```
+In conclusion, this report offers valuable insights into the complex interplay of economic, demographic, and social factors on a global scale. It highlights the dominance of a few countries in shaping the world economy, the challenges posed by large populations, and the significance of healthcare and family planning in improving overall well-being. Researchers and analysts can leverage these findings to better understand and address global trends and dynamics.
